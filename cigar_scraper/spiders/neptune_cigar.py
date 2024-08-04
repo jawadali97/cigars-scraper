@@ -49,37 +49,6 @@ class NeptuneCigarSpider(scrapy.Spider):
 
             # yield item_object
 
-            # =====================================
-
-            # yield {
-            #     'title': product.css('a.product_name >h2 ::text').get(),
-            #     'product_link': self.start_urls[0] + product.css('a.product_name ::attr(href)').get(),
-            #     'bundles': [
-            #         {
-            #             'pack': row.css('td.lbup:not(.av_details) ::text').get(),
-            #             'availability': row.css('td div.lbup ::text').get(),
-            #             'price': row.css('td.important_price.ca_current_price span ::text').get()
-            #         } for row in table[1:]
-            #     ],
-            #     # 'bundles': [
-            #     #     {
-            #     #         'pack': table[1].css('td.lbup:not(.av_details) ::text').get(),
-            #     #         'price': table[1].css('td.important_price.ca_current_price span ::text').get()
-            #     #     },
-            #     #     {
-            #     #         'pack': table[2].css('td.lbup:not(.av_details) ::text').get(),
-            #     #         'price': table[2].css('td.important_price.ca_current_price span ::text').get()
-            #     #     }
-            #     # ]
-            #     # 'bundles': bundles_list
-            # }
-        
-        # list_items = response.css('div#pagination1 li')
-        # next_page = list_items[-1].css('a.pagination_buttons ::attr(href)').get()
-        # if next_page is not None:
-        #     next_url = self.start_urls[0] + next_page
-        #     yield response.follow(next_url, callback=self.parse)
-
     def parse_prod_page(self, response):
         product = CigarScraperItem()
         
