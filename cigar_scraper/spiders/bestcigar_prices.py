@@ -6,6 +6,7 @@ class BestcigarPricesSpider(scrapy.Spider):
     allowed_domains = ["www.bestcigarprices.com"]
     start_urls = ["https://www.bestcigarprices.com"]
     use_selenium =  True
+    set_timeout = 10
 
     def start_requests(self):
 
@@ -51,9 +52,10 @@ class BestcigarPricesSpider(scrapy.Spider):
         # f.close()
 
         item_container = response.css('#main_item_container')
+        print(response.text)
 
-        if item_container:
-            print("********************************************************\n\n\n")
+        # if item_container:
+        print("********************************************************\n\n\n")
             # print(item_container)
 
         print(len(item_container.css('.item').getall()))
