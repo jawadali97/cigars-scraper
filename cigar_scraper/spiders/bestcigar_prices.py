@@ -1,12 +1,28 @@
 import scrapy
+from scrapy_splash import SplashRequest
 
 
 class BestcigarPricesSpider(scrapy.Spider):
     name = "bestcigar_prices"
-    allowed_domains = ["www.bestcigarprices.com"]
+    allowed_domains = ["bestcigarprices.com", "www.bestcigarprices.com", "localhost"]
     start_urls = ["https://www.bestcigarprices.com"]
     use_selenium =  True
     set_timeout = 10
+
+    # def __init__(self, *args, **kwargs):
+    #     super(JrcigarsSpider, self).__init__(*args, **kwargs)
+    #     chrome_options = webdriver.ChromeOptions()
+    #     chrome_options.add_argument("--headless")
+    #     chrome_options.add_argument("--disable-gpu")
+    #     chrome_options.add_argument("--no-sandbox")
+    #     chrome_options.add_argument("--disable-dev-shm-usage")
+    #     chrome_options.add_argument("--log-level=3")
+    #     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+    #     driver_path = "chromedriver-mac-x64/chromedriver"
+    #     service = Service(driver_path)
+    #     self.driver = webdriver.Chrome(service=service, options=chrome_options)
+
 
     def start_requests(self):
 
@@ -43,7 +59,9 @@ class BestcigarPricesSpider(scrapy.Spider):
         #     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
         # }
 
-        yield scrapy.Request(url= 'https://www.bestcigarprices.com/cigar-directory/cigars/', callback=self.parse)
+        url = 'https://www.bestcigarprices.com/cigar-directory/cigars/'
+        yield scrapy.Request(url, callback=self.parse)
+        # yield SplashRequest(url, self.parse, args={'wait': 20})
 
     def parse(self, response):
 

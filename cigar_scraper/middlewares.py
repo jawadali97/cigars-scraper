@@ -12,7 +12,12 @@ from scrapy.http import HtmlResponse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+
+from scrapy.downloadermiddlewares.offsite import OffsiteMiddleware
 
 
 class CigarScraperSpiderMiddleware:
@@ -114,11 +119,12 @@ class SeleniumMiddleware:
 
     def initialize_driver(self, set_timeout):
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--log-level=3")
+        chrome_options.add_argument("--enable-javascript")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Exclude logging
 
         # Set up custom headers
@@ -134,9 +140,6 @@ class SeleniumMiddleware:
         # service = Service(ChromeDriverManager().install())
         service = Service(driver_path)
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
-        if set_timeout:
-            print("setting timeout....................... ", set_timeout)
-            self.driver.implicitly_wait(set_timeout)
 
 
     def process_request(self, request, spider):
@@ -146,6 +149,7 @@ class SeleniumMiddleware:
 
         if getattr(spider, 'use_selenium', False):  # Check if this spider uses Selenium
             self.driver.get(request.url)
+            self.driver.implicitly_wait(20)
             body = self.driver.page_source
             return HtmlResponse(self.driver.current_url, body=body, encoding='utf-8', request=request)
         else:
@@ -154,3 +158,10 @@ class SeleniumMiddleware:
     def __del__(self):
         if self.driver:
             self.driver.quit()
+
+
+class BypassOffsiteMiddleware(OffsiteMiddleware):
+    def process_spider_output(self, response, result, spider):
+        if 'splash' in response.flags:
+            return result
+        return super().process_spider_output(response, result, spider)

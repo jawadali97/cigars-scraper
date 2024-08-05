@@ -15,8 +15,9 @@ LOG_LEVEL = 'DEBUG'  # General logging level for Scrapy
 logging.getLogger('selenium.webdriver.remote.remote_connection').setLevel(logging.WARNING)
 logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
-BOT_NAME = "cigar_scraper"
+# SPLASH_URL = 'http://localhost:8050'
 
+BOT_NAME = "cigar_scraper"
 SPIDER_MODULES = ["cigar_scraper.spiders"]
 NEWSPIDER_MODULE = "cigar_scraper.spiders"
 
@@ -24,7 +25,7 @@ NEWSPIDER_MODULE = "cigar_scraper.spiders"
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "cigar_scraper (+http://www.yourdomain.com)"
 # USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36"
-# USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
 
 # Obey robots.txt rules
@@ -64,15 +65,20 @@ COOKIES_ENABLED = True
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
+SPIDER_MIDDLEWARES = {
 #    "cigar_scraper.middlewares.CigarScraperSpiderMiddleware": 543,
-#}
+    # "scrapy_splash.SplashDeduplicateArgsMiddleware": 100,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
 #    "cigar_scraper.middlewares.CigarScraperDownloaderMiddleware": 543,
-   "cigar_scraper.middlewares.SeleniumMiddleware": 543,
+    # "scrapy_splash.SplashCookiesMiddleware": 723,
+    # "scrapy_splash.SplashMiddleware": 725,
+    # "scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware": 810,
+    "cigar_scraper.middlewares.SeleniumMiddleware": 820,
+    # 'cigar_scraper.middlewares.BypassOffsiteMiddleware': 500,
 }
 
 # Enable or disable extensions
@@ -112,3 +118,6 @@ DOWNLOADER_MIDDLEWARES = {
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+# DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
+# HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'

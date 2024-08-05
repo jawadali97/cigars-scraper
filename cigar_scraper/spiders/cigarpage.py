@@ -1,42 +1,46 @@
-from typing import Iterable
 import scrapy
 from cigar_scraper.items import CigarScraperItem, CigarPack
+from scrapy.http import HtmlResponse
+
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
 
 
 
 class CigarpageSpider(scrapy.Spider):
     name = "cigarpage"
-    allowed_domains = ["www.cigarpage.com"]
-    start_urls = ["https://www.cigarpage.com"]
-    use_selenium =  True
-    set_timeout = 20
+    allowed_domains = ["www.cigarpage.com", "cigarpage.com", "localhost"]
+    start_urls = ["https://www.cigarpage.com/brands"]
 
-    def start_requests(self):
-        yield scrapy.Request(url= 'https://www.cigarpage.com/brands', callback=self.parse)
-    
+    def __init__(self, *args, **kwargs):
+        super(CigarpageSpider, self).__init__(*args, **kwargs)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--log-level=3")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        driver_path = "chromedriver-mac-x64/chromedriver"
+        service = Service(driver_path)
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+
     def parse(self, response):
-        container = response.css('section .std .row')
-        # brands = container.css('h4 span ::text').getall()
-        # # links = container.css('.brand-item >a')
-        # cigars = container.css('.brand-item >a ::text').getall()
-        # cigar_links = container.css('.brand-item >a ::attr(href)').getall()
+        # link = 'https://www.cigarpage.com/601-blue-label-maduro.html'
+        # yield response.follow(link, self.parse_cigar_page, cb_kwargs={'brand': 'brand_name'})
 
-        # # print('Brand: ', brands)
-        # # print('Cigar: ', cigars)
-        # # print('URL: ', cigar_links)
-
-
+        # ======================================================
         brand_list = []
-        
-        # Find all h4 brand summaries and all divs with brand-item
-        brands = response.css('h4.brand-summary')
-        items = response.css('div.brand-item')
-        
         current_brand = None
         brand_name = ''
         for element in response.css('div.row > div.col-xs-12.col-sm-4 > *'):
             if 'brand-summary' in element.attrib.get('class', ''):
-                # This is an h4 element with class brand-summary
                 if current_brand:
                     # Append the previous brand's data to the brand list
                     brand_list.append(current_brand)
@@ -45,19 +49,15 @@ class CigarpageSpider(scrapy.Spider):
                 brand_name = element.css('span::text').get().strip()
                 current_brand = {'brand_name': brand_name, 'urls': []}
             elif 'brand-item' in element.attrib.get('class', ''):
-                # This is a div element with class brand-item
                 if current_brand:
                     link = element.css('a::attr(href)').get()
                     yield response.follow(link, self.parse_cigar_page, cb_kwargs={'brand': brand_name})
-
                     # current_brand['urls'].append(link)
         
         if current_brand:
             # Append the last brand's data to the brand list
             brand_list.append(current_brand)
-        
-        # yield {'brands': brand_list}
-
+        # ======================================================
 
         # for brand in brand_list:
         #     for link in brand['urls']:
@@ -68,82 +68,100 @@ class CigarpageSpider(scrapy.Spider):
     
     
     def parse_cigar_page(self, response, brand):
+        self.driver.get(response.url)
+        wait = WebDriverWait(self.driver, 8)
+        try:
+            tbody = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.cigar-grid > tbody")))
+            if tbody:
+                response = HtmlResponse(self.driver.current_url, body=self.driver.page_source, encoding='utf-8')
 
+                rows = response.css('table.cigar-grid > tbody > tr')
+                # print('Rows::: ', len(rows))
+                # TODO: For some links only one row is scraped, add retries for them
+                for row in rows:
+                    name = row.css('.cigar-alt-name ::text').get()
+                    pack = row.css('td:nth-child(2) > span ::text').get().strip()
+                    availability = row.css('.availability.out-of-stock span ::text').get()
+                    availability = False if availability else True
+                    price = row.css('span.price ::text').get().strip()
 
-        name = response.css('h1.productHeader ::text').get()
+                    cigar_info = {
+                        'name': name,
+                        'brand': brand,
+                        'prod_url': response.url,
+                        'pack': pack,
+                        'availability': availability,
+                        'price': price
+                    }
 
-        #grouped-items-container > div > div > table
+                    # Extract cigar attriibutes info
+                    attr_rows = row.css('.cigar-attr-row:not(.visible-xs)')
+                    for attr in attr_rows:
+                        label = attr.css('.cigar-attr-label ::text').get().strip()
+                        value = attr.css('.cigar-attr-value ::text').get().strip()
+                        if not value:
+                            value = attr.css('.cigar-attr-value div.progress-bar.strength ::attr(aria-valuenow)').get()
+                        if value:
+                            cigar_info[label.lower()] = value
 
-        #grouped-items-container > div > div > table > tbody > tr:nth-child(2)
+                    yield cigar_info
 
-
-        table = response.css('div#grouped-items-container div > div > table.cigar-grid')
-
-        rows = table.css('tbody tr')
-
-        print('Rows::: ', len(rows))
-        print('Brand Name::: ', brand)
-        print('Cigar name::: ', name)
-        print('***************************************\n')
-
-
-
-        # f = open("test.html", "a")
-        # f.write(str(response.text))
-        # f.close()
-
-
-        
-
-
-
-
-        # product = CigarScraperItem()
-        
-        # # Get prices for all packs
-        # packs_list = []
-        # table = response.css('#product_table >tr')
-        # for row in table[1:]:
-        #     pack = CigarPack()
-        #     pack['name'] = row.css('td.lbup:not(.av_details) ::text').get()
-        #     pack['availability'] = row.css('td div.lbup ::text').get()
-        #     pack['price'] = row.css('td.important_price ::text').get()
-        #     packs_list.append(dict(pack))
-
-        # product['name'] = response.css('.product_primary_info h1 span::text').get()
-        # product['packs'] = packs_list
-        # product['prod_url'] = response.url
-
-        # # Desired fields to extract, the key text is as per on the website
-        # fields = {
-        #     "Brands": "brand",
-        #     "Cigar Shape": "shape",
-        #     "Strength": "strength",
-        #     "Cigar Ring Gauge": "ring",
-        #     "Cigar Length": "length",
-        #     "Origin": "origin",
-        # }
-
-        # for field in fields:
-        #     # XPath to match <li> elements that have the desired fields as titles
-        #     value = response.xpath(
-        #         f"//div[@id='pr_tabSpec']//li/div[contains(text(),'{field}')]/following-sibling::div//meta/@content | "
-        #         f"//div[@id='pr_tabSpec']//li/div[contains(text(),'{field}')]/following-sibling::div//div[contains(@class,'onHover')]/text()"
-        #     ).get(default='').strip()
-
-        #     if not value:  # Try an alternative approach if the text extraction fails
-        #         value = response.xpath(
-        #             f"//div[@id='pr_tabSpec']//li/div[contains(text(),'{field}')]/following-sibling::div/div[contains(text(),'{field}')]"
-        #         ).xpath('following-sibling::div//meta/@content | following-sibling::div//div[contains(@class,"onHover")]/text()').get(default='').strip()
-
-        #     if field == "Strength":
-        #         value = response.xpath("//div[@id='strengthCursor']//div[not(@id)]/text()").get(default='').strip()
-            
-        #     # Assign the extracted value to the results dictionary
-        #     product[fields[field]] = value
-        
-        # yield product
+        except TimeoutException as e:
+            print('[DEBUG] - Timeout occcurs, could not find element : ', e.msg)
 
 
 
 
+
+
+
+
+
+
+
+# Keeping it in case needed later
+
+# =========================================
+# rows = tbody.find_elements(By.TAG_NAME, 'tr')
+# print('Rows::: ', len(rows))
+
+# for row in rows:
+#     name = row.find_element(By.CSS_SELECTOR, ".cigar-alt-name").text.strip()
+#     # pack = row.find_element(By.CSS_SELECTOR, ".visible-xs.cigar-attr-row span.cigar-attr-value").text.strip()
+#     pack = row.find_element(By.CSS_SELECTOR, "td:nth-child(2)").text.strip()
+
+#     try:
+#         availability = row.find_element(By.CSS_SELECTOR, ".availability.out-of-stock span").text.strip()
+#     except:
+#         availability = row.find_element(By.CSS_SELECTOR, "span[style='color:green']").text.strip()
+    
+    
+#     price = row.find_element(By.CSS_SELECTOR, "span.price").text.strip()
+
+#     cigar_info = {
+#         'name': name,
+#         'brand': brand,
+#         'prod_url': response.url,
+#         'pack': pack,
+#         'availability': availability,
+#         'price': price
+#     }
+
+
+#     attr_rows = row.find_elements(By.CSS_SELECTOR, "td:nth-child(1) .cigar-attr-row:not(.visible-xs)")
+#     print('ATTR ROWS::: ', len(attr_rows))
+
+#     for attr in attr_rows:
+#         label = attr.find_element(By.CLASS_NAME, 'cigar-attr-label').text.strip()
+#         # print('Label:: ', label)
+#         try:
+#             value = attr.find_element(By.CSS_SELECTOR, '.cigar-attr-value > div.progress-bar.strength')
+#             print("Except::: ", value)
+
+#         except:
+#             value = attr.find_element(By.CLASS_NAME, 'cigar-attr-value').text.strip()
+#             cigar_info[label.lower()] = value
+
+
+#     print(cigar_info)
+# =========================================
