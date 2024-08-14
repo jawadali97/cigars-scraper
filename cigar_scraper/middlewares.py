@@ -9,14 +9,17 @@ from scrapy import signals
 from itemadapter import is_item, ItemAdapter
 
 from scrapy.http import HtmlResponse
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+# from selenium import webdriver
+# from selenium.webdriver.chrome.service import Service
+# from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.support.ui import WebDriverWait
+# from selenium.webdriver.support import expected_conditions as EC
+# from webdriver_manager.chrome import ChromeDriverManager
 
+import undetected_chromedriver as uc
+import ssl
+import time
 from scrapy.downloadermiddlewares.offsite import OffsiteMiddleware
 
 
@@ -118,28 +121,37 @@ class SeleniumMiddleware:
         self.driver = None
 
     def initialize_driver(self, set_timeout):
-        chrome_options = Options()
-        # chrome_options.add_argument("--headless")
+        chrome_options = uc.ChromeOptions()
+        chrome_options.add_argument(str("--headless"))
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_argument("--enable-javascript")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Exclude logging
+        # chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Exclude logging
 
         # Set up custom headers
-        chrome_options.add_argument('user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
-        chrome_options.add_argument('accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7')
-        chrome_options.add_argument('accept-language=en-PK,en-US;q=0.9,en;q=0.8')
-        chrome_options.add_argument('sec-ch-ua="Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"')
-        chrome_options.add_argument('sec-ch-ua-platform=macOS')
-        chrome_options.add_argument('sec-ch-ua-platform-version=13.4.0')
-        chrome_options.add_argument('upgrade-insecure-requests=1')
+        # chrome_options.add_argument('user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
+        # chrome_options.add_argument('accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7')
+        # chrome_options.add_argument('accept-language=en-PK,en-US;q=0.9,en;q=0.8')
+        # chrome_options.add_argument('sec-ch-ua="Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"')
+        # chrome_options.add_argument('sec-ch-ua-platform=macOS')
+        # chrome_options.add_argument('sec-ch-ua-platform-version=13.4.0')
+        # chrome_options.add_argument('upgrade-insecure-requests=1')
 
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
+        chrome_options.add_argument("--accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+        chrome_options.add_argument("--accept-language=en-PK,en-US;q=0.9,en;q=0.8")
+        chrome_options.add_argument('--sec-ch-ua="Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"')
+        chrome_options.add_argument("--sec-ch-ua-platform=macOS")
+        chrome_options.add_argument("--sec-ch-ua-platform-version=13.4.0")
+        chrome_options.add_argument("--upgrade-insecure-requests=1")
         driver_path = "chromedriver-mac-x64/chromedriver"
         # service = Service(ChromeDriverManager().install())
-        service = Service(driver_path)
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        # service = Service(driver_path)
+        # self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        ssl._create_default_https_context = ssl._create_unverified_context
+        self.driver = uc.Chrome(driver_executable_path=driver_path, options=chrome_options)
 
 
     def process_request(self, request, spider):
@@ -149,7 +161,6 @@ class SeleniumMiddleware:
 
         if getattr(spider, 'use_selenium', False):  # Check if this spider uses Selenium
             self.driver.get(request.url)
-            self.driver.implicitly_wait(20)
             body = self.driver.page_source
             return HtmlResponse(self.driver.current_url, body=body, encoding='utf-8', request=request)
         else:

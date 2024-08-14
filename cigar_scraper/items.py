@@ -17,6 +17,7 @@ class CigarScraperItem(scrapy.Item):
     ring = scrapy.Field()
     length = scrapy.Field()
     origin = scrapy.Field()
+    sub_brand = scrapy.Field()
 
 class CigarPack(scrapy.Item):
     name = scrapy.Field()
