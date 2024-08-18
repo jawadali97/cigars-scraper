@@ -6,8 +6,116 @@
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
-
+import pymongo
+from scrapy.exceptions import DropItem
+import datetime
 
 class CigarScraperPipeline:
     def process_item(self, item, spider):
+        spider_name = getattr(spider, 'name')
+        adapter = ItemAdapter(item)
+
+        # TODO: jr_cigar length is in floating point
+        # from fractions import Fraction
+        # a = '3.62'
+        # b = float("0." + a.split('.')[1])
+        # c = b.as_integer_ratio()
+        # print(str(Fraction(b).limit_denominator()))
+
+        if spider_name == 'cigarpage':
+            strength = int(adapter.get('strength').strip())
+            if strength > 0 and strength <= 33:
+                adapter['strength'] = 'Mild'
+            elif strength > 33 and strength <= 66:
+                adapter['strength'] = 'Medium'
+            elif strength > 67 and strength <= 100:
+                adapter['strength'] = 'Full'
+        
+        if spider_name == 'jrcigars':
+            adapter['name'] = f"{adapter.get('name')} {adapter.get('sub_brand')}"
+
+        packs = adapter.get('packs')
+        for pack in packs:
+            if not pack['price']:
+                raise DropItem(f"Missing price for item {item}")
+            if not pack['price'].startswith('$'):
+                pack['price'] = '$' + pack['price']
+            if type(pack['availability']) is bool:
+                pack['availability'] = 'In Stock' if pack['availability'] else 'Out of Stock'
+            pack['availability'] = pack['availability'].strip().capitalize()
+            pack['name'] = pack['name'].strip().capitalize()
+
+        adapter['strength'] = adapter.get('strength').strip().capitalize() if adapter.get('strength') else ''
+        adapter['shape'] = adapter.get('shape').strip().capitalize() if adapter.get('shape') else ''
+        adapter['origin'] = adapter.get('origin').strip().capitalize() if adapter.get('origin') else ''
+        adapter['name'] = adapter.get('name').strip() if adapter.get('name') else ''
+        adapter['brand'] = adapter.get('brand').strip() if adapter.get('brand') else ''
+        adapter['sub_brand'] = adapter.get('sub_brand').strip() if adapter.get('sub_brand') else ''
+
         return item
+    
+
+class MongoPipeline:
+
+    def __init__(self, mongo_uri, mongo_db, batch_size):
+        self.mongo_uri = mongo_uri
+        self.mongo_db = mongo_db
+        self.batch_size = batch_size
+        self.items_buffer = []
+        self.websites = {
+            'cigarpage': 'Cigar Page',
+            'neptune_cigar': 'Neptune Cigar',
+            'jrcigars': 'JR Cigars',
+            'foxcigar': 'Fox Cigar',
+            'famous_smoke': 'Famous Smoke',
+        }
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            mongo_uri=crawler.settings.get('MONGO_URI', 'mongodb://localhost:27017/'),
+            mongo_db=crawler.settings.get('MONGO_DATABASE', 'cigarDB'),
+            batch_size=crawler.settings.get('BATCH_SIZE', 500)
+        )
+
+    def open_spider(self, spider):
+        self.client = pymongo.MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+        self.collection = self.db['cigars']
+
+    def close_spider(self, spider):
+        if self.items_buffer:
+            self._flush_buffer()
+        self.client.close()
+
+    def process_item(self, item, spider):
+        adapter = ItemAdapter(item)
+        spider_name = getattr(spider, 'name')
+        cigar_item = adapter.asdict()
+
+        unique_id = cigar_item['name']
+        if spider_name == 'cigarpage':
+            unique_id = unique_id + cigar_item['packs'][0]['name']
+        elif spider_name == 'jrcigars':
+            unique_id = f"{unique_id}{cigar_item['length']}{cigar_item['ring']}"
+
+        cigar_item['unique_id'] = unique_id.lower().replace(' ', '').replace('\"', '')
+        cigar_item['site_name'] = self.websites[spider_name]
+        cigar_item['scraped_at'] = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.items_buffer.append(cigar_item)
+
+        # Flush buffer if reached batch size
+        if len(self.items_buffer) >= self.batch_size:
+            self._flush_buffer()
+
+        return item
+
+    def _flush_buffer(self):
+        operations = [pymongo.UpdateOne(
+            {'unique_id': item['unique_id']},
+            {'$set': item},
+            upsert=True
+        ) for item in self.items_buffer]
+        
+        self.collection.bulk_write(operations)
+        self.items_buffer = []

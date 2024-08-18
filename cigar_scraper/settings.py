@@ -9,22 +9,24 @@
 
 import logging
 
+BOT_NAME = "cigar_scraper"
+SPIDER_MODULES = ["cigar_scraper.spiders"]
+NEWSPIDER_MODULE = "cigar_scraper.spiders"
+
 # Configure logging
 LOG_LEVEL = 'DEBUG'  # General logging level for Scrapy
 # Suppress DEBUG logs for the remote_connection logger used by Selenium
 logging.getLogger('selenium.webdriver.remote.remote_connection').setLevel(logging.WARNING)
 logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
-# SPLASH_URL = 'http://localhost:8050'
-
-BOT_NAME = "cigar_scraper"
-SPIDER_MODULES = ["cigar_scraper.spiders"]
-NEWSPIDER_MODULE = "cigar_scraper.spiders"
+# MongoDB connection settings
+MONGO_URI = 'mongodb://localhost:27017/'
+MONGO_DATABASE = 'cigarDB'
+BATCH_SIZE = 500  # Adjust based on your resource limits and performance testing
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "cigar_scraper (+http://www.yourdomain.com)"
-# USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36"
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
 
@@ -53,14 +55,6 @@ COOKIES_ENABLED = True
 #    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 #    "Accept-Language": "en",
 #}
-# DEFAULT_REQUEST_HEADERS = {
-#    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-#    "Accept-Language": "en",
-#    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0",
-#    "Connection": "keep-alive",
-#     "Accept-Encoding": "gzip, deflate, br",
-#     "Referer": "https://www.google.com/",
-# }
 
 
 # Enable or disable spider middlewares
@@ -89,9 +83,10 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "cigar_scraper.pipelines.CigarScraperPipeline": 300,
-#}
+ITEM_PIPELINES = {
+   "cigar_scraper.pipelines.CigarScraperPipeline": 300,
+   'cigar_scraper.pipelines.MongoPipeline': 400,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
