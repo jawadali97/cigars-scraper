@@ -11,16 +11,49 @@ from scrapy.exceptions import DropItem
 import datetime
 
 class CigarScraperPipeline:
+
+    def parse_fraction(self, fraction_str):
+        """
+        Parse a string containing an integer part and a fractional part into a floating-point number.
+
+        :param fraction_str: A string representing a mixed fraction (e.g. "3 1/2")
+        :return: A float representing the mixed fraction (e.g. 3.5)
+        """
+        parts = fraction_str.split()
+        if len(parts) == 1:
+            # If there's no fractional part, return the integer part as a float
+            if len(parts[0].split(".")) == 2:
+                return float(parts[0])
+            return int(parts[0])
+        
+        integer_part = int(parts[0])
+        fraction_part = parts[1]
+
+        # Split the fractional part into numerator and denominator
+        numerator, denominator = map(int, fraction_part.split('/'))
+        
+        fraction_value = numerator / denominator
+        res = integer_part + fraction_value
+        return round(res, 2)
+
+
     def process_item(self, item, spider):
         spider_name = getattr(spider, 'name')
         adapter = ItemAdapter(item)
 
-        # TODO: jr_cigar length is in floating point
+        # INFO: jr_cigar length is in floating point
         # from fractions import Fraction
         # a = '3.62'
         # b = float("0." + a.split('.')[1])
         # c = b.as_integer_ratio()
         # print(str(Fraction(b).limit_denominator()))
+
+        if adapter.get('ring'):
+            adapter['ring'] = int(adapter.get('ring').strip())
+
+        if adapter.get('length'):
+            item_len = adapter.get('length').rstrip('"').replace('"', ' ')
+            adapter['length'] = self.parse_fraction(item_len)
 
         if spider_name == 'cigarpage':
             strength = int(adapter.get('strength').strip())
@@ -38,12 +71,12 @@ class CigarScraperPipeline:
         for pack in packs:
             if not pack['price']:
                 raise DropItem(f"Missing price for item {item}")
-            if not pack['price'].startswith('$'):
-                pack['price'] = '$' + pack['price']
             if type(pack['availability']) is bool:
                 pack['availability'] = 'In Stock' if pack['availability'] else 'Out of Stock'
-            pack['availability'] = pack['availability'].strip().capitalize()
             pack['name'] = pack['name'].strip().capitalize()
+            price = pack['price'].strip('$')
+            pack['price'] = float(price) if len(price.split(".")) == 2 else int(price)
+            pack['availability'] = pack['availability'].strip().capitalize()
 
         adapter['strength'] = adapter.get('strength').strip().capitalize() if adapter.get('strength') else ''
         adapter['shape'] = adapter.get('shape').strip().capitalize() if adapter.get('shape') else ''
