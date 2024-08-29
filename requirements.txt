@@ -2,4 +2,4 @@ scrapy
 selenium
 undetected_chromedriver
 webdriver_manager
-scrapy_splash
+pymongo
