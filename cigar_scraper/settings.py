@@ -22,7 +22,7 @@ logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 # MongoDB connection settings
 MONGO_URI = 'mongodb://localhost:27017/'
 MONGO_DATABASE = 'cigarDB'
-BATCH_SIZE = 500  # Adjust based on your resource limits and performance testing
+BATCH_SIZE = 250  # Adjust based on your resource limits and performance testing
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -85,7 +85,7 @@ DOWNLOADER_MIDDLEWARES = {
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    "cigar_scraper.pipelines.CigarScraperPipeline": 300,
-#    'cigar_scraper.pipelines.MongoPipeline': 400,
+   'cigar_scraper.pipelines.MongoPipeline': 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

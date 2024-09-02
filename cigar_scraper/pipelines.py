@@ -20,11 +20,15 @@ class CigarScraperPipeline:
         :return: A float representing the mixed fraction (e.g. 3.5)
         """
         parts = fraction_str.split()
-        if len(parts) == 1:
-            # If there's no fractional part, return the integer part as a float
-            if len(parts[0].split(".")) == 2:
-                return float(parts[0])
-            return int(parts[0])
+        try:
+            if len(parts) == 1:
+                # If there's no fractional part, return the integer part as a float
+                if len(parts[0].split(".")) == 2:
+                    return float(parts[0])
+                return int(parts[0])
+        except ValueError:
+            print('\nDEBUG - Length is not int or float Convertable\n')
+            return None
         
         integer_part = int(parts[0])
         fraction_part = parts[1]
@@ -48,6 +52,13 @@ class CigarScraperPipeline:
         # c = b.as_integer_ratio()
         # print(str(Fraction(b).limit_denominator()))
 
+        if not adapter.get('name') \
+            or (not adapter.get('brand') and not adapter.get('origin') \
+                and not adapter.get('shape') and not adapter.get('strength') \
+                    and not adapter.get('ring') and not adapter.get('length')):
+            raise DropItem(f"\n\nITEM DROPED: Missing item information {item}\n\n")
+            
+
         if adapter.get('ring'):
             adapter['ring'] = int(adapter.get('ring').strip())
 
@@ -68,9 +79,11 @@ class CigarScraperPipeline:
             adapter['name'] = f"{adapter.get('name')} {adapter.get('sub_brand')}"
 
         packs = adapter.get('packs')
+        if len(packs) == 0:
+            raise DropItem(f"\n\nITEM DROPED: Missing packs information {item}\n\n")
         for pack in packs:
             if not pack['price']:
-                raise DropItem(f"Missing price for item {item}")
+                raise DropItem(f"\n\nMissing price for item {item}\n\n")
             if type(pack['availability']) is bool:
                 pack['availability'] = 'In Stock' if pack['availability'] else 'Out of Stock'
             pack['name'] = pack['name'].strip().capitalize()

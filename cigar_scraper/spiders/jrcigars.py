@@ -23,7 +23,6 @@ class JrcigarsSpider(scrapy.Spider):
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-        # driver_path = "chromedriver-mac-x64/chromedriver"
         service = Service(CHROME_DRIVER_PATH)
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
