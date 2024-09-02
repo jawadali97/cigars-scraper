@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from cigar_scraper.constants import CHROME_DRIVER_PATH
 
 
 class CigarpageSpider(scrapy.Spider):
@@ -23,8 +24,8 @@ class CigarpageSpider(scrapy.Spider):
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-        driver_path = "chromedriver-mac-x64/chromedriver"
-        service = Service(driver_path)
+        # driver_path = "chromedriver-mac-x64/chromedriver"
+        service = Service(CHROME_DRIVER_PATH)
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
     def parse(self, response):

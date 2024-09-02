@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver as uc
 import time
 from urllib.parse import urlparse, parse_qs
+from cigar_scraper.constants import CHROME_DRIVER_PATH
 
 class FamousSmokeSpider(scrapy.Spider):
     name = "famous_smoke"
@@ -22,8 +23,8 @@ class FamousSmokeSpider(scrapy.Spider):
         chrome_options.add_argument("--log-level=3")
         chrome_options.add_argument("--enable-javascript")
         chrome_options.add_argument("--disable-images")
-        driver_path = "chromedriver-mac-x64/chromedriver"
-        self.driver = uc.Chrome(driver_executable_path=driver_path, options=chrome_options)
+        # driver_path = "chromedriver-mac-x64/chromedriver"
+        self.driver = uc.Chrome(driver_executable_path=CHROME_DRIVER_PATH, options=chrome_options)
 
     def parse(self, response):
         brands = response.css('ul.brandlisting')

@@ -21,6 +21,7 @@ import undetected_chromedriver as uc
 import ssl
 import time
 from scrapy.downloadermiddlewares.offsite import OffsiteMiddleware
+from cigar_scraper.constants import CHROME_DRIVER_PATH
 
 
 class CigarScraperSpiderMiddleware:
@@ -146,12 +147,12 @@ class SeleniumMiddleware:
         chrome_options.add_argument("--sec-ch-ua-platform=macOS")
         chrome_options.add_argument("--sec-ch-ua-platform-version=13.4.0")
         chrome_options.add_argument("--upgrade-insecure-requests=1")
-        driver_path = "chromedriver-mac-x64/chromedriver"
+        # driver_path = "chromedriver-mac-x64/chromedriver"
         # service = Service(ChromeDriverManager().install())
         # service = Service(driver_path)
         # self.driver = webdriver.Chrome(service=service, options=chrome_options)
         ssl._create_default_https_context = ssl._create_unverified_context
-        self.driver = uc.Chrome(driver_executable_path=driver_path, options=chrome_options)
+        self.driver = uc.Chrome(driver_executable_path=CHROME_DRIVER_PATH, options=chrome_options)
 
 
     def process_request(self, request, spider):
@@ -171,8 +172,8 @@ class SeleniumMiddleware:
             self.driver.quit()
 
 
-class BypassOffsiteMiddleware(OffsiteMiddleware):
-    def process_spider_output(self, response, result, spider):
-        if 'splash' in response.flags:
-            return result
-        return super().process_spider_output(response, result, spider)
+# class BypassOffsiteMiddleware(OffsiteMiddleware):
+#     def process_spider_output(self, response, result, spider):
+#         if 'splash' in response.flags:
+#             return result
+#         return super().process_spider_output(response, result, spider)

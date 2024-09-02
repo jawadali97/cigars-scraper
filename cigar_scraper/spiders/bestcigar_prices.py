@@ -1,5 +1,4 @@
 import scrapy
-from scrapy_splash import SplashRequest
 import undetected_chromedriver as uc
 from scrapy.http import HtmlResponse
 
