@@ -1,9 +1,12 @@
 import scrapy
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from cigar_scraper.items import CigarScraperItem, CigarPack
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import undetected_chromedriver as uc
+# import undetected_chromedriver as uc
 import time
 from urllib.parse import urlparse, parse_qs
 from cigar_scraper.constants import CHROME_DRIVER_PATH
@@ -15,7 +18,7 @@ class FamousSmokeSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super(FamousSmokeSpider, self).__init__(*args, **kwargs)
-        chrome_options = uc.ChromeOptions()
+        chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument(str("--headless"))
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
@@ -24,7 +27,9 @@ class FamousSmokeSpider(scrapy.Spider):
         chrome_options.add_argument("--enable-javascript")
         chrome_options.add_argument("--disable-images")
         # driver_path = "chromedriver-mac-x64/chromedriver"
-        self.driver = uc.Chrome(driver_executable_path=CHROME_DRIVER_PATH, options=chrome_options)
+        service = Service(CHROME_DRIVER_PATH)
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        # self.driver = uc.Chrome(driver_executable_path=CHROME_DRIVER_PATH, options=chrome_options)
 
     def parse(self, response):
         brands = response.css('ul.brandlisting')
